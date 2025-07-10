@@ -54,6 +54,30 @@ app.post('/api/generate-playlist', async (req, res) => {
     const data = await mcpClient.generatePlaylist(params, accessToken);
     res.json(data);
   } catch (error) {
+    // Force log the error
+    console.error('Error in /api/generate-playlist:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Refresh access token
+app.post('/api/auth/refresh', async (req, res) => {
+  try {
+    const { refresh_token } = req.body;
+    const data = await mcpClient.refreshAccessToken(refresh_token);
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get available genres from Spotify
+app.get('/api/genres', async (req, res) => {
+  try {
+    const accessToken = req.headers['authorization']?.split(' ')[1];
+    const genres = await mcpClient.getAvailableGenres(accessToken);
+    res.json({ genres });
+  } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });

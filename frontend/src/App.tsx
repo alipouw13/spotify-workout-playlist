@@ -1,16 +1,27 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './App.css'
 
 const API_BASE_URL = 'http://localhost:4000/api';
 
 const activities = ['Running', 'Cycling', 'Gym', 'Yoga']
-const genres = ['Pop', 'Rock', 'EDM', 'Hip-Hop', 'Classical']
 const bpms = ['Any', 'Fast', 'Slow']
 
-interface Song {
-  id?: string
-  name?: string
-  artist?: string
+// Add a function to refresh the access token
+async function refreshToken(setAccessToken: (token: string) => void) {
+  const refresh_token = localStorage.getItem('spotify_refresh_token');
+  if (!refresh_token) return null;
+  const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh_token }),
+  });
+  const data = await res.json();
+  if (data.access_token) {
+    localStorage.setItem('spotify_access_token', data.access_token);
+    setAccessToken(data.access_token);
+    return data.access_token;
+  }
+  return null;
 }
 
 function App() {
@@ -18,35 +29,28 @@ function App() {
   const [duration, setDuration] = useState(30)
   const [genre, setGenre] = useState('Pop')
   const [bpm, setBpm] = useState('Any')
-  const [playlist, setPlaylist] = useState('')
   const [step, setStep] = useState(1)
-  const [generatedPlaylist, setGeneratedPlaylist] = useState<Song[]>([])
+  const [generatedPlaylist, setGeneratedPlaylist] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-
-  // Placeholder for playlist selection
-  const userPlaylists = [
-    { id: '1', name: 'My Favs' },
-    { id: '2', name: 'Chill Vibes' },
-    { id: '3', name: 'Workout Mix' },
-  ]
+  const [genresList, setGenresList] = useState<string[]>([])
+  const [genreInput, setGenreInput] = useState('')
+  const genreInputRef = useRef<HTMLInputElement>(null)
+  const [genreWarning, setGenreWarning] = useState('');
 
   // On mount, check for access token in localStorage or URL
   useEffect(() => {
-    // 1. Check for access token in localStorage
-    const storedToken = localStorage.getItem('spotify_access_token')
+    const storedToken = localStorage.getItem('spotify_access_token');
     if (storedToken) {
-      setAccessToken(storedToken)
-      setIsAuthenticated(true)
-      return
+      setAccessToken(storedToken);
+      setIsAuthenticated(true);
+      return;
     }
-    // 2. Check for code in URL (OAuth callback)
-    const params = new URLSearchParams(window.location.search)
-    const code = params.get('code')
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
     if (code) {
-      // Exchange code for token
       fetch(`${API_BASE_URL}/auth/token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -55,16 +59,36 @@ function App() {
         .then(res => res.json())
         .then(data => {
           if (data.access_token) {
-            localStorage.setItem('spotify_access_token', data.access_token)
-            setAccessToken(data.access_token)
-            setIsAuthenticated(true)
-            // Remove code from URL
-            window.history.replaceState({}, document.title, window.location.pathname)
+            localStorage.setItem('spotify_access_token', data.access_token);
+            if (data.refresh_token) {
+              localStorage.setItem('spotify_refresh_token', data.refresh_token);
+            }
+            setAccessToken(data.access_token);
+            setIsAuthenticated(true);
+            window.history.replaceState({}, document.title, window.location.pathname);
           }
         })
-        .catch(() => setError('Failed to authenticate with Spotify'))
+        .catch(() => setError('Failed to authenticate with Spotify'));
     }
-  }, [])
+  }, []);
+
+  // Fetch genres from backend when authenticated
+  useEffect(() => {
+    if (isAuthenticated && accessToken) {
+      fetch(`${API_BASE_URL}/genres`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.genres) setGenresList(data.genres);
+        });
+    }
+  }, [isAuthenticated, accessToken]);
+
+  // Filter genres for typeahead
+  const filteredGenres = genresList.filter(g =>
+    g.toLowerCase().includes(genreInput.toLowerCase())
+  );
 
   // Login handler
   const handleLogin = async () => {
@@ -75,30 +99,60 @@ function App() {
     }
   }
 
+  // Logout handler
+  const handleLogout = () => {
+    localStorage.removeItem('spotify_access_token');
+    localStorage.removeItem('spotify_refresh_token');
+    setAccessToken(null);
+    setIsAuthenticated(false);
+    window.location.reload();
+  };
+
   async function handleGeneratePlaylist(e: React.FormEvent) {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
-    setGeneratedPlaylist([])
+    e.preventDefault();
+    setGenreWarning('');
+    setLoading(true);
+    setError(null);
+    setGeneratedPlaylist([]);
+    // Only allow valid genres
+    if (!genresList.includes(genre)) {
+      setLoading(false);
+      setGenreWarning('Please select a genre from the dropdown.');
+      return;
+    }
     try {
       const params = {
         activity,
         duration,
         genre,
         bpm,
-        playlistId: playlist || undefined,
       }
-      const res = await fetch(`${API_BASE_URL}/generate-playlist`, {
+      let token = accessToken;
+      let res = await fetch(`${API_BASE_URL}/generate-playlist`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(params),
       })
+      if (res.status === 401) {
+        // Try to refresh token and retry
+        token = await refreshToken(setAccessToken);
+        if (token) {
+          res = await fetch(`${API_BASE_URL}/generate-playlist`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(params),
+          });
+        }
+      }
       if (!res.ok) throw new Error('Failed to generate playlist')
       const data = await res.json()
-      setGeneratedPlaylist((data.songs as Song[]) || [])
+      setGeneratedPlaylist((data.songs as string[]) || [])
       setStep(2)
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -111,90 +165,207 @@ function App() {
     }
   }
 
-  return (
-    <div className="container">
-      <h1>Spotify Workout Playlist Generator</h1>
-      {!isAuthenticated ? (
-        <button onClick={handleLogin} style={{ marginBottom: 24 }}>
-          Login with Spotify
-        </button>
-      ) : (
-        <div style={{ marginBottom: 24 }}>Logged in to Spotify</div>
-      )}
-      {/* Only show the rest of the app if authenticated */}
-      {isAuthenticated && step === 1 && (
-        <form onSubmit={handleGeneratePlaylist}>
-          <label>
-            Activity:
-            <select value={activity} onChange={e => setActivity(e.target.value)}>
-              {activities.map(a => (
-                <option key={a} value={a}>{a}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Duration (minutes):
-            <input
-              type="number"
-              min={5}
-              max={180}
-              value={duration}
-              onChange={e => setDuration(Number(e.target.value))}
-            />
-          </label>
-          <label>
-            Genre:
-            <select value={genre} onChange={e => setGenre(e.target.value)}>
-              {genres.map(g => (
-                <option key={g} value={g}>{g}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            BPM:
-            <select value={bpm} onChange={e => setBpm(e.target.value)}>
-              {bpms.map(b => (
-                <option key={b} value={b}>{b}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            (Optional) Select from your playlists:
-            <select value={playlist} onChange={e => setPlaylist(e.target.value)}>
-              <option value="">-- None --</option>
-              {userPlaylists.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-          </label>
-          <button type="submit" disabled={loading}>
-            {loading ? 'Generating...' : 'Generate Playlist'}
+  // Spotify-style login page
+  if (!isAuthenticated) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #191414 0%, #1DB954 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontFamily: 'Circular, system-ui, Arial, sans-serif',
+      }}>
+        <div style={{
+          background: '#222',
+          borderRadius: 24,
+          boxShadow: '0 4px 32px rgba(0,0,0,0.3)',
+          padding: 36,
+          width: 370,
+          maxWidth: '95vw',
+          color: '#fff',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+        }}>
+          <img src="/spotify-logo.png" alt="Spotify" style={{ width: 64, marginBottom: 24 }} />
+          <h1 style={{ fontWeight: 900, fontSize: 28, marginBottom: 8, letterSpacing: -1, textAlign: 'center' }}>
+            Millions of Songs.<br />Free on Spotify.
+          </h1>
+          <button
+            onClick={handleLogin}
+            style={{
+              background: '#1DB954',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 999,
+              padding: '12px 32px',
+              fontWeight: 700,
+              fontSize: 18,
+              marginBottom: 16,
+              width: '100%',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            Log in with Spotify
           </button>
-          {error && <div className="error">{error}</div>}
-        </form>
-      )}
-      {isAuthenticated && step === 2 && (
-        <div>
-          <h2>Generated Playlist</h2>
-          {loading && <div>Loading...</div>}
-          {error && <div className="error">{error}</div>}
-          <ul>
-            {generatedPlaylist.length > 0 ? (
-              generatedPlaylist.map((song, idx) => (
-                <li key={song.id || idx}>
-                  {song.name || `Song ${idx + 1}`} by {song.artist || 'Unknown'}
-                  <button style={{ marginLeft: 8 }}>Swap</button>
-                </li>
-              ))
-            ) : (
-              <li>No songs found.</li>
-            )}
-          </ul>
-          <button onClick={() => setStep(1)}>Back</button>
-          <button style={{ marginLeft: 8 }}>Accept Playlist</button>
+          {/* Add Google/Apple buttons as needed (placeholders) */}
+          <button style={{
+            background: '#fff',
+            color: '#222',
+            border: 'none',
+            borderRadius: 999,
+            padding: '12px 32px',
+            fontWeight: 700,
+            fontSize: 18,
+            marginBottom: 12,
+            width: '100%',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+          }}>
+            Continue with Google
+          </button>
+          <button style={{
+            background: '#fff',
+            color: '#222',
+            border: 'none',
+            borderRadius: 999,
+            padding: '12px 32px',
+            fontWeight: 700,
+            fontSize: 18,
+            marginBottom: 12,
+            width: '100%',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+          }}>
+            Continue with Apple
+          </button>
         </div>
-      )}
-      {error && <div className="error">{error}</div>}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #191414 0%, #1DB954 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Circular, system-ui, Arial, sans-serif' }}>
+      <div style={{ background: '#222', borderRadius: 24, boxShadow: '0 4px 32px rgba(0,0,0,0.3)', padding: 36, width: 400, maxWidth: '98vw', color: '#fff' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+          <button onClick={handleLogout} style={{ background: '#333', color: '#fff', border: 'none', borderRadius: 999, padding: '8px 20px', fontWeight: 600, fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}>Log out</button>
+        </div>
+        <h1 style={{ fontWeight: 900, fontSize: 32, marginBottom: 8, letterSpacing: -1 }}>Spotify Workout Playlist</h1>
+        <div style={{ color: '#1DB954', fontWeight: 700, marginBottom: 24, fontSize: 18 }}>Generator</div>
+        {step === 1 && (
+          <form onSubmit={handleGeneratePlaylist} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            <label style={{ fontWeight: 600, marginBottom: 2 }}>Activity
+              <select value={activity} onChange={e => setActivity(e.target.value)} style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid #333', marginTop: 4, background: '#191414', color: '#fff', fontSize: 16, fontFamily: 'inherit' }}>
+                {activities.map(a => (
+                  <option key={a} value={a}>{a}</option>
+                ))}
+              </select>
+            </label>
+            <label style={{ fontWeight: 600, marginBottom: 2 }}>Duration (minutes)
+              <input
+                type="number"
+                min={5}
+                max={180}
+                value={duration}
+                onChange={e => setDuration(Number(e.target.value))}
+                style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid #333', marginTop: 4, background: '#191414', color: '#fff', fontSize: 16, fontFamily: 'inherit' }}
+              />
+            </label>
+            <label style={{ fontWeight: 600, marginBottom: 2, position: 'relative' }}>Genre
+              <input
+                ref={genreInputRef}
+                type="text"
+                value={genreInput}
+                onChange={e => {
+                  setGenreInput(e.target.value);
+                  setGenre(''); // Clear genre until selected from dropdown
+                  setGenreWarning('');
+                }}
+                placeholder="Type or select a genre"
+                style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid #333', marginTop: 4, background: '#191414', color: '#fff', fontSize: 16, fontFamily: 'inherit' }}
+                autoComplete="off"
+                onFocus={() => genreInputRef.current?.select()}
+              />
+              {genreInput && filteredGenres.length > 0 && (
+                <ul style={{
+                  background: '#191414',
+                  border: '1px solid #333',
+                  borderRadius: 8,
+                  margin: 0,
+                  padding: 0,
+                  listStyle: 'none',
+                  maxHeight: 180,
+                  overflowY: 'auto',
+                  position: 'absolute',
+                  zIndex: 10,
+                  width: '100%',
+                  left: 0,
+                  top: 54,
+                }}>
+                  {filteredGenres.map(g => (
+                    <li
+                      key={g}
+                      style={{ padding: 10, cursor: 'pointer', fontSize: 16 }}
+                      onClick={() => {
+                        setGenreInput(g);
+                        setGenre(g);
+                        setGenreWarning('');
+                      }}
+                    >
+                      {g}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </label>
+            <label style={{ fontWeight: 600, marginBottom: 2 }}>BPM
+              <select value={bpm} onChange={e => setBpm(e.target.value)} style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid #333', marginTop: 4, background: '#191414', color: '#fff', fontSize: 16, fontFamily: 'inherit' }}>
+                {bpms.map(b => (
+                  <option key={b} value={b}>{b}</option>
+                ))}
+              </select>
+            </label>
+            <button type="submit" disabled={loading} style={{ background: '#1DB954', color: '#fff', border: 'none', borderRadius: 999, padding: '14px 0', fontWeight: 700, fontSize: 20, marginTop: 12, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, fontFamily: 'inherit' }}>
+              {loading ? 'Generating...' : 'Generate Playlist'}
+            </button>
+            {error && <div style={{ color: '#ff4d4f', fontWeight: 600, marginTop: 8 }}>{error}</div>}
+            {genreWarning && <div style={{ color: '#ff4d4f', fontWeight: 600, marginTop: 4 }}>{genreWarning}</div>}
+          </form>
+        )}
+        {step === 2 && (
+          <div style={{ marginTop: 24 }}>
+            <h2 style={{ fontWeight: 800, fontSize: 22, marginBottom: 16, color: '#1DB954' }}>Generated Playlist</h2>
+            {loading && <div style={{ color: '#fff' }}>Loading...</div>}
+            {error && <div style={{ color: '#ff4d4f', fontWeight: 600 }}>{error}</div>}
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              {generatedPlaylist.length > 0 ? (
+                generatedPlaylist.map((uri, idx) => (
+                  <li key={uri || idx} style={{ background: '#191414', borderRadius: 12, marginBottom: 12, padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                      {/* Playlist cover image placeholder (can be replaced with real image if available) */}
+                      <div style={{ width: 48, height: 48, background: '#333', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, color: '#1DB954' }}>
+                        <span role="img" aria-label="music">🎵</span>
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 16 }}>{uri}</div>
+                        {/* You can fetch and display track name/artist if desired */}
+                      </div>
+                    </div>
+                  </li>
+                ))
+              ) : (
+                <li style={{ color: '#aaa', textAlign: 'center', padding: 16 }}>No songs found.</li>
+              )}
+            </ul>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 18 }}>
+              <button onClick={() => setStep(1)} style={{ background: '#333', color: '#fff', border: 'none', borderRadius: 999, padding: '10px 24px', fontWeight: 600, fontSize: 16, cursor: 'pointer', fontFamily: 'inherit' }}>Back</button>
+              <button style={{ background: '#1DB954', color: '#fff', border: 'none', borderRadius: 999, padding: '10px 24px', fontWeight: 600, fontSize: 16, cursor: 'pointer', fontFamily: 'inherit' }}>Accept Playlist</button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
