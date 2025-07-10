@@ -39,6 +39,7 @@ function App() {
   const [genreInput, setGenreInput] = useState('')
   const genreInputRef = useRef<HTMLInputElement>(null)
   const [genreWarning, setGenreWarning] = useState('');
+  const [genreDropdownOpen, setGenreDropdownOpen] = useState(false);
 
   // On mount, check for access token in localStorage or URL
   useEffect(() => {
@@ -365,15 +366,20 @@ function App() {
                 value={genreInput}
                 onChange={e => {
                   setGenreInput(e.target.value);
-                  setGenre(''); // Clear genre until selected from dropdown
+                  setGenre('');
                   setGenreWarning('');
+                  setGenreDropdownOpen(true);
                 }}
                 placeholder="Type or select a genre"
-                style={inputBoxStyle}
+                style={{ ...inputBoxStyle, boxSizing: 'border-box', height: 48 }}
                 autoComplete="off"
-                onFocus={() => genreInputRef.current?.select()}
+                onFocus={() => {
+                  setGenreDropdownOpen(true);
+                  genreInputRef.current?.select();
+                }}
+                onBlur={() => setTimeout(() => setGenreDropdownOpen(false), 150)}
               />
-              {genreInput && filteredGenres.length > 0 && (
+              {genreDropdownOpen && (
                 <ul style={{
                   background: '#191414',
                   border: '1px solid #333',
@@ -387,21 +393,27 @@ function App() {
                   zIndex: 10,
                   width: '100%',
                   left: 0,
-                  top: 54,
+                  top: 52,
                 }}>
-                  {filteredGenres.map(g => (
-                    <li
-                      key={g}
-                      style={{ padding: 10, cursor: 'pointer', fontSize: 16 }}
-                      onClick={() => {
-                        setGenreInput(g);
-                        setGenre(g);
-                        setGenreWarning('');
-                      }}
-                    >
-                      {g}
-                    </li>
-                  ))}
+                  {(genreInput ? filteredGenres : genresList).length > 0 ? (
+                    (genreInput ? filteredGenres : genresList).map(g => (
+                      <li
+                        key={g}
+                        style={{ padding: 10, cursor: 'pointer', fontSize: 16 }}
+                        onMouseDown={e => e.preventDefault()}
+                        onClick={() => {
+                          setGenreInput(g);
+                          setGenre(g);
+                          setGenreWarning('');
+                          setGenreDropdownOpen(false);
+                        }}
+                      >
+                        {g}
+                      </li>
+                    ))
+                  ) : (
+                    <li style={{ padding: 10, color: '#aaa' }}>No genres available</li>
+                  )}
                 </ul>
               )}
             </label>
