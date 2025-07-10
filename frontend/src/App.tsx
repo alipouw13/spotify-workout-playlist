@@ -165,6 +165,50 @@ function App() {
     }
   }
 
+  // Shared Spotify-style background and card wrapper for all pages
+  const spotifyBg = (
+    <div style={{
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      zIndex: 0,
+      opacity: 0.18,
+      background: 'url(/spotify-bg-demo.jpg) center/cover no-repeat',
+      filter: 'blur(2px)',
+    }} />
+  );
+
+  const cardStyle: React.CSSProperties = {
+    position: 'relative',
+    zIndex: 1,
+    background: 'rgba(0,0,0,0.7)',
+    borderRadius: 32,
+    padding: 36,
+    width: 400,
+    maxWidth: '98vw',
+    color: '#fff',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    boxShadow: '0 4px 32px rgba(0,0,0,0.3)',
+  };
+
+  // Shared style for all input/select boxes
+  const inputBoxStyle: React.CSSProperties = {
+    width: '100%',
+    padding: 12,
+    borderRadius: 8,
+    border: '1px solid #333',
+    marginTop: 4,
+    background: '#191414',
+    color: '#fff',
+    fontSize: 16,
+    fontFamily: 'inherit',
+    boxSizing: 'border-box',
+  };
+
   // Spotify-style login page
   if (!isAuthenticated) {
     return (
@@ -175,89 +219,130 @@ function App() {
         alignItems: 'center',
         justifyContent: 'center',
         fontFamily: 'Circular, system-ui, Arial, sans-serif',
+        position: 'relative',
+        overflow: 'hidden',
       }}>
-        <div style={{
-          background: '#222',
-          borderRadius: 24,
-          boxShadow: '0 4px 32px rgba(0,0,0,0.3)',
-          padding: 36,
-          width: 370,
-          maxWidth: '95vw',
-          color: '#fff',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}>
-          <img src="/spotify-logo.png" alt="Spotify" style={{ width: 64, marginBottom: 24 }} />
-          <h1 style={{ fontWeight: 900, fontSize: 28, marginBottom: 8, letterSpacing: -1, textAlign: 'center' }}>
+        {spotifyBg}
+        <div style={cardStyle}>
+          <div style={{ margin: '32px 0 24px 0' }}>
+            <img src="/spotify-logo.png" alt="Spotify" style={{ width: 56, display: 'block', margin: '0 auto' }} />
+          </div>
+          <h1 style={{ fontWeight: 900, fontSize: 28, marginBottom: 24, letterSpacing: -1, textAlign: 'center' }}>
             Millions of Songs.<br />Free on Spotify.
           </h1>
           <button
-            onClick={handleLogin}
             style={{
               background: '#1DB954',
-              color: '#fff',
+              color: '#222',
               border: 'none',
               borderRadius: 999,
-              padding: '12px 32px',
+              padding: '16px 0',
               fontWeight: 700,
               fontSize: 18,
-              marginBottom: 16,
+              marginBottom: 18,
               width: '100%',
               cursor: 'pointer',
               fontFamily: 'inherit',
+              boxShadow: '0 2px 8px rgba(30,185,84,0.15)',
             }}
           >
-            Log in with Spotify
+            Sign up free
           </button>
-          {/* Add Google/Apple buttons as needed (placeholders) */}
           <button style={{
-            background: '#fff',
-            color: '#222',
-            border: 'none',
+            background: '#111',
+            color: '#fff',
+            border: '2px solid #333',
             borderRadius: 999,
-            padding: '12px 32px',
+            padding: '14px 0',
             fontWeight: 700,
-            fontSize: 18,
+            fontSize: 17,
             marginBottom: 12,
             width: '100%',
             cursor: 'pointer',
             fontFamily: 'inherit',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 12,
           }}>
-            Continue with Google
+            <span style={{ fontSize: 20 }}>🌐</span> Continue with Google
           </button>
           <button style={{
-            background: '#fff',
-            color: '#222',
-            border: 'none',
+            background: '#111',
+            color: '#fff',
+            border: '2px solid #333',
             borderRadius: 999,
-            padding: '12px 32px',
+            padding: '14px 0',
             fontWeight: 700,
-            fontSize: 18,
+            fontSize: 17,
             marginBottom: 12,
             width: '100%',
             cursor: 'pointer',
             fontFamily: 'inherit',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 12,
           }}>
-            Continue with Apple
+            <span style={{ fontSize: 20 }}>📘</span> Continue with Facebook
+          </button>
+          <button style={{
+            background: '#111',
+            color: '#fff',
+            border: '2px solid #333',
+            borderRadius: 999,
+            padding: '14px 0',
+            fontWeight: 700,
+            fontSize: 17,
+            marginBottom: 18,
+            width: '100%',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 12,
+          }}>
+            <span style={{ fontSize: 20 }}></span> Continue with Apple
+          </button>
+          <button
+            onClick={handleLogin}
+            style={{
+              background: 'transparent',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 999,
+              padding: '10px 0',
+              fontWeight: 700,
+              fontSize: 17,
+              width: '100%',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              textDecoration: 'underline',
+              marginTop: 8,
+            }}
+          >
+            Log in
           </button>
         </div>
       </div>
     );
   }
 
+  // Authenticated pages use the same background and card
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #191414 0%, #1DB954 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Circular, system-ui, Arial, sans-serif' }}>
-      <div style={{ background: '#222', borderRadius: 24, boxShadow: '0 4px 32px rgba(0,0,0,0.3)', padding: 36, width: 400, maxWidth: '98vw', color: '#fff' }}>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #191414 0%, #1DB954 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Circular, system-ui, Arial, sans-serif', position: 'relative', overflow: 'hidden' }}>
+      {spotifyBg}
+      <div style={cardStyle}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8, width: '100%' }}>
           <button onClick={handleLogout} style={{ background: '#333', color: '#fff', border: 'none', borderRadius: 999, padding: '8px 20px', fontWeight: 600, fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}>Log out</button>
         </div>
         <h1 style={{ fontWeight: 900, fontSize: 32, marginBottom: 8, letterSpacing: -1 }}>Spotify Workout Playlist</h1>
         <div style={{ color: '#1DB954', fontWeight: 700, marginBottom: 24, fontSize: 18 }}>Generator</div>
         {step === 1 && (
-          <form onSubmit={handleGeneratePlaylist} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <form onSubmit={handleGeneratePlaylist} style={{ display: 'flex', flexDirection: 'column', gap: 18, width: 320, alignSelf: 'center' }}>
             <label style={{ fontWeight: 600, marginBottom: 2 }}>Activity
-              <select value={activity} onChange={e => setActivity(e.target.value)} style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid #333', marginTop: 4, background: '#191414', color: '#fff', fontSize: 16, fontFamily: 'inherit' }}>
+              <select value={activity} onChange={e => setActivity(e.target.value)} style={inputBoxStyle}>
                 {activities.map(a => (
                   <option key={a} value={a}>{a}</option>
                 ))}
@@ -270,7 +355,7 @@ function App() {
                 max={180}
                 value={duration}
                 onChange={e => setDuration(Number(e.target.value))}
-                style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid #333', marginTop: 4, background: '#191414', color: '#fff', fontSize: 16, fontFamily: 'inherit' }}
+                style={inputBoxStyle}
               />
             </label>
             <label style={{ fontWeight: 600, marginBottom: 2, position: 'relative' }}>Genre
@@ -284,7 +369,7 @@ function App() {
                   setGenreWarning('');
                 }}
                 placeholder="Type or select a genre"
-                style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid #333', marginTop: 4, background: '#191414', color: '#fff', fontSize: 16, fontFamily: 'inherit' }}
+                style={inputBoxStyle}
                 autoComplete="off"
                 onFocus={() => genreInputRef.current?.select()}
               />
@@ -321,7 +406,7 @@ function App() {
               )}
             </label>
             <label style={{ fontWeight: 600, marginBottom: 2 }}>BPM
-              <select value={bpm} onChange={e => setBpm(e.target.value)} style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid #333', marginTop: 4, background: '#191414', color: '#fff', fontSize: 16, fontFamily: 'inherit' }}>
+              <select value={bpm} onChange={e => setBpm(e.target.value)} style={inputBoxStyle}>
                 {bpms.map(b => (
                   <option key={b} value={b}>{b}</option>
                 ))}
