@@ -154,6 +154,14 @@ Before you begin, you'll need a Spotify Developer account and a registered app:
 - Add your own screenshots to `frontend/src/assets/` for the README
 - Tweak the playlist selection algorithm in `backend/mcpClient.js`
 
+## Reference Repositories
+
+The following GitHub repositories were referenced during the development of this project:
+
+- [Spotify Web API Examples](https://github.com/spotify/web-api-examples)
+- [Spotify Playlist Generator Example](https://github.com/ritiek/spotify-downloader)
+- [Spotify React Example](https://github.com/spotify/spotify-web-api-js)
+
 ## License
 
 This project is licensed under the MIT License 
