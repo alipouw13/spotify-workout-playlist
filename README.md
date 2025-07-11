@@ -42,6 +42,58 @@ A web app to generate custom workout playlists from your Spotify library and pla
 - Frontend: React + Vite (`frontend/`)
 - Backend: Node.js + Express (`backend/`)
 
+### Running the App Locally (Development)
+
+1. **(Optional) Create a Python virtual environment**
+   
+   If you plan to run Python scripts or tests (e.g., in the `tests/` folder), it's recommended to create a virtual environment in the project root:
+   
+   ```bash
+   python -m venv venv
+   # Activate on Windows:
+   venv\Scripts\activate
+   # Activate on macOS/Linux:
+   source venv/bin/activate
+   ```
+
+2. **Install dependencies**
+   
+   Open two terminals (or use tabs):
+   
+   In the `backend/` directory:
+   ```bash
+   cd backend
+   npm install
+   ```
+   
+   In the `frontend/` directory:
+   ```bash
+   cd frontend
+   npm install
+   ```
+
+3. **Start the backend server**
+   
+   In the `backend/` directory:
+   ```bash
+   npm start
+   ```
+   By default, the backend runs on [http://localhost:4000](http://localhost:4000)
+
+4. **Start the frontend development server**
+   
+   In the `frontend/` directory:
+   ```bash
+   npm run dev
+   ```
+   By default, the frontend runs on [http://127.0.0.1:8000](http://127.0.0.1:8000)
+
+5. **Open the app**
+   
+   Visit [http://127.0.0.1:8000](http://127.0.0.1:8000) in your browser.
+
+> Make sure your `.env` file is set up in the `backend/` directory with your Spotify credentials.
+
 ## Customization
 
 - Add your own screenshots to `frontend/src/assets/` for the README
@@ -49,4 +101,4 @@ A web app to generate custom workout playlists from your Spotify library and pla
 
 ## License
 
-MIT
+This project is licensed under the MIT License 
