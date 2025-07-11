@@ -2,7 +2,7 @@
 
 > **Disclaimer:** This project is ongoing and intentionally simple, designed to prove out core functionality. Features and code structure may change as development continues.
 
-A web app to generate custom workout playlists from your Spotify library and playlists.
+A web app to generate custom workout playlists from your Spotify library and personal playlists.
 
 ## Features
 
