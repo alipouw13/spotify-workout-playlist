@@ -149,20 +149,28 @@ Before you begin, you'll need a Spotify Developer account and a registered app:
 
 > Make sure your `.env` file is set up in the `backend/` directory with your Spotify credentials.
 
+### Testing and Cleanup
+
+When testing the app, you may generate many playlists. Use the cleanup script to delete test playlists:
+
+```bash
+# Delete playlists from the last 24 hours (default)
+node tests/delete-test-playlists.js
+
+# Delete playlists from the last 48 hours
+node tests/delete-test-playlists.js 48
+
+# Delete playlists from the last 2 hours
+node tests/delete-test-playlists.js 2
+```
+
+The script will:
+1. Authenticate with Spotify
+2. Find playlists with names starting with "Workout:" or containing "test"/"generated"
+3. Show you the list and ask for confirmation before deleting
+
+> **Note:** The script uses the same environment variables as your backend. Make sure your `backend/.env` file is accessible.
+
 ## Customization
 
-- Add your own screenshots to `frontend/src/assets/` for the README
-- Tweak the playlist selection algorithm in `backend/mcpClient.js`
-
-## Reference Repositories
-
-The following GitHub repositories were referenced during the development of this project:
-
-- [Spotify Web API Examples](https://github.com/spotify/web-api-examples)
-- [Spotify Playlist Generator Example](https://github.com/ritiek/spotify-downloader)
-- [Spotify React Example](https://github.com/spotify/spotify-web-api-js)
-
-## License
-
-This project is licensed under the MIT License 
-
+- Add your own screenshots to `

@@ -1,7 +1,7 @@
 {
-  "name": "spotify-workout-playlist",
+  "name": "tests",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "delete-test-playlists.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -11,7 +11,7 @@
   "description": "",
   "dependencies": {
     "axios": "^1.10.0",
-    "cookie-parser": "^1.4.7",
+    "dotenv": "^17.2.0",
     "uuid": "^11.1.0"
   }
 }
