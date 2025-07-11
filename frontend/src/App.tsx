@@ -77,6 +77,7 @@ function App() {
   const [playlists, setPlaylists] = useState<{ id: string; name: string }[]>([]);
   const [selectedPlaylistId, setSelectedPlaylistId] = useState<string>('');
   const [duration, setDuration] = useState(30); // default 30 minutes
+  const [playlistName, setPlaylistName] = useState('');
 
   // Generate duration options (5 to 720 minutes)
   const durationOptions = Array.from({ length: (720 - 5) / 5 + 1 }, (_, i) => 5 + i * 5);
@@ -273,6 +274,7 @@ function App() {
         activity,
         sourcePlaylistId: selectedPlaylistId,
         duration,
+        playlistName: playlistName.trim() || `Workout: ${activity}`,
       };
       
       let token = accessToken;
@@ -448,6 +450,17 @@ function App() {
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
               </select>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#fff' }}>
+                Playlist Name (optional)
+              </label>
+              <input
+                type="text"
+                value={playlistName}
+                onChange={e => setPlaylistName(e.target.value)}
+                placeholder={`Workout: ${activity}`}
+                className="spotify-input"
+                style={{ width: '100%', marginBottom: '16px', padding: '12px', borderRadius: '8px', border: '1px solid #282828', background: '#222', color: '#fff' }}
+              />
               <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#fff' }}>
                 Duration (minutes)
               </label>

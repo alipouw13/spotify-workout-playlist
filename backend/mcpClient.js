@@ -376,8 +376,8 @@ async function getUserPlaylistSummaries(accessToken) {
 
 // Update generateWorkoutPlaylist to use duration and select tracks accordingly
 async function generateWorkoutPlaylist(params, accessToken) {
-  const { activity, sourcePlaylistId, duration } = params;
-  const playlistName = `Workout: ${activity}`;
+  const { activity, sourcePlaylistId, duration, playlistName } = params;
+  const name = playlistName && playlistName.trim() ? playlistName.trim() : `Workout: ${activity}`;
   const playlistDescription = `Generated workout playlist for ${activity} using tracks from your playlist.`;
   const user = await getCurrentUser(accessToken);
   // Get all tracks from the selected playlist
@@ -385,7 +385,7 @@ async function generateWorkoutPlaylist(params, accessToken) {
   // Select tracks to fit the requested duration
   const selectedTracks = selectTracksForDuration(sourceTracks, duration || 30);
   // Create the playlist
-  const playlist = await createPlaylist(user.id, playlistName, playlistDescription, false, accessToken);
+  const playlist = await createPlaylist(user.id, name, playlistDescription, false, accessToken);
   // Add tracks to playlist (in one batch)
   const batch = selectedTracks.map(t => `spotify:track:${t.id}`);
   if (batch.length > 0) await addTracksToPlaylist(playlist.id, batch, accessToken);
