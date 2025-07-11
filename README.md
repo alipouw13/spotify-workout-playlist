@@ -14,17 +14,12 @@ A web app to generate custom workout playlists from your Spotify library and pla
 
 ## Workflow
 
-1. Login
-![Login](frontend/src/assets/login.png)
-
-2. Authentication
-![Authentication](frontend/src/assets/connection.png)
-
-3. Playlist Generation
-![Generator](frontend/src/assets/selection.png)
-
-4. Playlist Creation
-![Created](frontend/src/assets/creation.png) |
+| Step | Visual |
+|--|--|
+| 1 | ![Login](frontend/src/assets/login.png) |
+| 2 | ![Authentication](frontend/src/assets/connection.png) |
+| 3 | ![Generator](frontend/src/assets/selection.png) |
+| 4 | ![Created](frontend/src/assets/creation.png) |
 
 ## Getting Started
 
