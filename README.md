@@ -21,6 +21,32 @@ A web app to generate custom workout playlists from your Spotify library and pla
 | 3 | ![Generator](frontend/src/assets/selection.png) |
 | 4 | ![Created](frontend/src/assets/creation.png) |
 
+## Prerequisites
+
+Before you begin, you'll need a Spotify Developer account and a registered app:
+
+1. **Create a Spotify Developer Account**
+   - Go to the [Spotify Developer Dashboard](https://developer.spotify.com/) and log in with your Spotify account (or create one if you don't have it).
+
+2. **Create a new app**
+   - In the dashboard, click "Create an App".
+   
+   ![Create Spotify App](frontend/src/assets/create-spotify-app.png)
+   
+   - Give your app a name and description.
+   - After creation, you'll see your **Client ID** and **Client Secret**.
+   
+   ![Spotify App Client ID and Secret](frontend/src/assets/app-client-id.png)
+
+3. **Set the Redirect URI**
+   - In your app settings, add your redirect URI (e.g., `http://localhost:4000/api/auth/callback` or as specified in your `.env`).
+   - Save the changes.
+
+4. **Copy your credentials**
+   - You'll need the **Client ID**, **Client Secret**, and **Redirect URI** for your `.env` file in the backend.
+
+> For more details, see the [Spotify Developer Documentation](https://developer.spotify.com/).
+
 ## Getting Started
 
 1. **Clone the repo**
