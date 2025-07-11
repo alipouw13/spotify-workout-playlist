@@ -7,8 +7,8 @@ const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 const SPOTIFY_REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI;
 
-// Remove in-memory storage for PKCE code verifiers
-// const codeVerifiers = new Map();
+// In-memory storage for PKCE code verifiers (in production, use Redis or database)
+const codeVerifiers = new Map();
 
 // Generate PKCE code verifier and challenge
 function generatePKCE() {
@@ -18,19 +18,11 @@ function generatePKCE() {
 }
 
 // Get Spotify authorization URL with PKCE
-function getSpotifyAuthUrl(res) {
+function getSpotifyAuthUrl() {
   const { codeVerifier, codeChallenge } = generatePKCE();
   const state = uuidv4();
-
-  // Store code verifier and state in a secure, HTTP-only cookie (expires in 10 minutes)
-  res.cookie('spotify_auth', JSON.stringify({ state, codeVerifier }), {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 10 * 60 * 1000, // 10 minutes
-    sameSite: 'lax',
-    path: '/',
-  });
-
+  // Store code verifier with state for later retrieval
+  codeVerifiers.set(state, codeVerifier);
   const params = querystring.stringify({
     client_id: SPOTIFY_CLIENT_ID,
     response_type: 'code',
@@ -47,7 +39,6 @@ function getSpotifyAuthUrl(res) {
       'user-library-read',
     ].join(' '),
   });
-
   return {
     url: `https://accounts.spotify.com/authorize?${params}`,
     state: state
@@ -55,22 +46,13 @@ function getSpotifyAuthUrl(res) {
 }
 
 // Exchange authorization code for tokens using PKCE
-async function exchangeCodeForToken(code, state, req, res) {
-  // Read codeVerifier and state from cookie
-  let cookieData;
-  try {
-    cookieData = JSON.parse(req.cookies['spotify_auth'] || '{}');
-  } catch {
-    cookieData = {};
-  }
-  if (!cookieData.state || !cookieData.codeVerifier || cookieData.state !== state) {
+async function exchangeCodeForToken(code, state) {
+  const codeVerifier = codeVerifiers.get(state);
+  if (!codeVerifier) {
     throw new Error('Invalid state parameter or code verifier not found');
   }
-  const codeVerifier = cookieData.codeVerifier;
-
-  // Clean up the cookie
-  res.clearCookie('spotify_auth', { path: '/' });
-
+  // Clean up the code verifier
+  codeVerifiers.delete(state);
   const tokenUrl = 'https://accounts.spotify.com/api/token';
   const data = querystring.stringify({
     grant_type: 'authorization_code',
@@ -79,11 +61,9 @@ async function exchangeCodeForToken(code, state, req, res) {
     client_id: SPOTIFY_CLIENT_ID,
     code_verifier: codeVerifier,
   });
-
   const headers = {
     'Content-Type': 'application/x-www-form-urlencoded',
   };
-
   try {
     const response = await axios.post(tokenUrl, data, { headers });
     return response.data;
@@ -237,7 +217,9 @@ async function uploadPlaylistCover(playlistId, imageBuffer, accessToken) {
 // Get available genres
 async function getAvailableGenres(accessToken) {
   try {
-    const response = await axios.get('https://api.spotify.com/v1/recommendations/available-genre-seeds');
+    const response = await axios.get(
+      'https://api.spotify.com/v1/recommendations/available-genre-seeds'
+    );
     return response.data;
   } catch (error) {
     console.error('Get available genres error:', error.response?.data || error.message);
@@ -248,15 +230,18 @@ async function getAvailableGenres(accessToken) {
 // Search for tracks
 async function searchTracks(query, type = 'track', limit = 10, offset = 0, accessToken) {
   try {
-    const response = await axios.get('https://api.spotify.com/v1/search', {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      params: {
-        q: query,
-        type: type,
-        limit: limit,
-        offset: offset
+    const response = await axios.get(
+      `https://api.spotify.com/v1/search`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        params: {
+          q: query,
+          type: type,
+          limit: limit,
+          offset: offset
+        }
       }
-    });
+    );
     return response.data;
   } catch (error) {
     console.error('Search tracks error:', error.response?.data || error.message);
@@ -265,17 +250,20 @@ async function searchTracks(query, type = 'track', limit = 10, offset = 0, acces
 }
 
 // Get track recommendations
-async function getTrackRecommendations(seedArtists, seedGenres, seedTracks, limit = 10, accessToken) {
+async function getTrackRecommendations(seedArtists = [], seedGenres = [], seedTracks = [], limit = 10, accessToken) {
   try {
-    const response = await axios.get('https://api.spotify.com/v1/recommendations', {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      params: {
-        seed_artists: seedArtists.join(','),
-        seed_genres: seedGenres.join(','),
-        seed_tracks: seedTracks.join(','),
-        limit: limit
+    const response = await axios.get(
+      `https://api.spotify.com/v1/recommendations`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        params: {
+          limit: limit,
+          seed_artists: seedArtists.join(','),
+          seed_genres: seedGenres.join(','),
+          seed_tracks: seedTracks.join(',')
+        }
       }
-    });
+    );
     return response.data;
   } catch (error) {
     console.error('Get track recommendations error:', error.response?.data || error.message);
@@ -284,27 +272,27 @@ async function getTrackRecommendations(seedArtists, seedGenres, seedTracks, limi
 }
 
 // Generate a workout playlist
-async function generateWorkoutPlaylist(name, description, public = false, accessToken) {
-  try {
-    const response = await axios.post(
-      `https://api.spotify.com/v1/users/${userId}/playlists`,
-      {
-        name: name,
-        description: description,
-        public: public
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-    return response.data;
-  } catch (error) {
-    console.error('Generate workout playlist error:', error.response?.data || error.message);
-    throw new Error('Failed to generate workout playlist');
-  }
+async function generateWorkoutPlaylist(params, accessToken) {
+  // Extract parameters
+  const { activity, duration, bpm } = params;
+  // Compose playlist name and description
+  const playlistName = `Workout: ${activity}`;
+  const playlistDescription = `Generated workout playlist for ${activity}${bpm ? `, BPM: ${bpm}` : ''}. Duration: ${duration} minutes.`;
+  // Get current user
+  const user = await getCurrentUser(accessToken);
+  // Create the playlist
+  const playlist = await createPlaylist(user.id, playlistName, playlistDescription, false, accessToken);
+  // Return playlist info (tracks can be added later if needed)
+  return {
+    playlistId: playlist.id,
+    playlistName: playlist.name,
+    playlistUrl: playlist.external_urls?.spotify,
+    tracks: [],
+    user: {
+      id: user.id,
+      displayName: user.display_name
+    }
+  };
 }
 
 module.exports = {

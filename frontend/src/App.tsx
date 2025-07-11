@@ -356,7 +356,6 @@ function App() {
                 min="5"
                 max="180"
                 className="spotify-input"
-                style={{ width: '100%', marginBottom: '16px', padding: '12px', borderRadius: '8px', border: '1px solid #282828', background: '#222', color: '#fff' }}
               />
 
               <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#fff' }}>

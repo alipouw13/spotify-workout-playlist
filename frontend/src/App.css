@@ -162,6 +162,24 @@ body {
   border: 2px solid #282828;
 }
 
+.spotify-input {
+  width: 100%;
+  margin-bottom: 16px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #282828;
+  background: #222;
+  color: #fff;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+input[type="number"].spotify-input {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
 @media (max-width: 600px) {
   .spotify-card {
     padding: 32px 8px 24px 8px;
