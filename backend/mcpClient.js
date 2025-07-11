@@ -56,7 +56,10 @@ function getSpotifyAuthUrl() {
 async function exchangeCodeForToken(code, state) {
   const codeVerifier = codeVerifiers.get(state);
   if (!codeVerifier) {
-    throw new Error('Invalid state parameter or code verifier not found');
+    // Instead of throwing, return a 400 error with a clear message
+    const err = new Error('Invalid state parameter or code verifier not found. This usually happens if you refresh the page after login or the login session expired. Please try logging in again.');
+    err.status = 400;
+    throw err;
   }
   // Clean up the code verifier
   codeVerifiers.delete(state);

@@ -40,13 +40,13 @@ app.post('/api/auth/token', async (req, res) => {
   try {
     const { code, state } = req.body;
     if (!code || !state) {
-      return res.status(400).json({ error: 'Missing code or state parameter' });
+      return res.status(400).json({ error: 'Missing code or state' });
     }
-    const data = await mcpClient.exchangeCodeForToken(code, state);
-    res.json(data);
+    const tokenData = await mcpClient.exchangeCodeForToken(code, state);
+    res.json(tokenData);
   } catch (error) {
     console.error('Token exchange error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(error.status || 500).json({ error: error.message });
   }
 });
 

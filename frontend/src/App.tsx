@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './App.css'
 import spotifyLogo from './assets/spotify-logo.png'; // Use the PNG logo from src/assets
 
@@ -77,8 +77,13 @@ function App() {
   const [playlists, setPlaylists] = useState<{ id: string; name: string }[]>([]);
   const [selectedPlaylistId, setSelectedPlaylistId] = useState<string>('');
 
+  const tokenExchangeAttempted = useRef(false);
+
   // On mount, check for access token in localStorage or URL
   useEffect(() => {
+    if (tokenExchangeAttempted.current) return;
+    tokenExchangeAttempted.current = true;
+
     const storedToken = localStorage.getItem('spotify_access_token');
     if (storedToken) {
       setAccessToken(storedToken);
@@ -96,7 +101,11 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code, state }),
       })
-        .then(res => res.json())
+        .then(res => {
+          // Remove code/state from URL immediately
+          window.history.replaceState({}, document.title, window.location.pathname);
+          return res.json();
+        })
         .then(data => {
           if (data.access_token) {
             localStorage.setItem('spotify_access_token', data.access_token);
@@ -105,14 +114,63 @@ function App() {
             }
             setAccessToken(data.access_token);
             setIsAuthenticated(true);
-            window.history.replaceState({}, document.title, window.location.pathname);
+          } else {
+            // Try to fetch user with any existing token
+            const fallbackToken = localStorage.getItem('spotify_access_token');
+            if (fallbackToken) {
+              fetch(`${API_BASE_URL}/user`, {
+                headers: { Authorization: `Bearer ${fallbackToken}` },
+              })
+                .then(res => {
+                  if (res.ok) {
+                    setAccessToken(fallbackToken);
+                    setIsAuthenticated(true);
+                    setError(null);
+                  } else {
+                    setError('Failed to authenticate with Spotify');
+                  }
+                })
+                .catch(() => setError('Failed to authenticate with Spotify'));
+            } else {
+              setError('Failed to authenticate with Spotify');
+            }
+          }
+        })
+        .catch(() => {
+          // Remove code/state from URL immediately
+          window.history.replaceState({}, document.title, window.location.pathname);
+          // Try to fetch user with any existing token
+          const fallbackToken = localStorage.getItem('spotify_access_token');
+          if (fallbackToken) {
+            fetch(`${API_BASE_URL}/user`, {
+              headers: { Authorization: `Bearer ${fallbackToken}` },
+            })
+              .then(res => {
+                if (res.ok) {
+                  setAccessToken(fallbackToken);
+                  setIsAuthenticated(true);
+                  setError(null);
+                } else {
+                  setError('Failed to authenticate with Spotify');
+                }
+              })
+              .catch(() => setError('Failed to authenticate with Spotify'));
           } else {
             setError('Failed to authenticate with Spotify');
           }
-        })
-        .catch(() => setError('Failed to authenticate with Spotify'));
+        });
     }
   }, []);
+
+  // Add effect to redirect to root after failed token exchange if not authenticated
+  useEffect(() => {
+    if (!isAuthenticated && error) {
+      const timeout = setTimeout(() => {
+        window.location.href = '/';
+      }, 2000);
+      return () => clearTimeout(timeout);
+    }
+  }, [isAuthenticated, error]);
 
   // Fetch user profile when authenticated
   useEffect(() => {
@@ -314,7 +372,7 @@ function App() {
             You can remove this access at any time in your account settings.<br />
             For more information about how Running Assistant can use your personal data, please see Running Assistant's privacy policy.
           </div>
-          {error && (
+          {!isAuthenticated && error && (
             <p style={{ color: '#e74c3c', textAlign: 'center', marginTop: '16px' }}>
               {error}
             </p>
