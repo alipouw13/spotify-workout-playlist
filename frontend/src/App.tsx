@@ -76,6 +76,10 @@ function App() {
   const [user, setUser] = useState<SpotifyUser | null>(null);
   const [playlists, setPlaylists] = useState<{ id: string; name: string }[]>([]);
   const [selectedPlaylistId, setSelectedPlaylistId] = useState<string>('');
+  const [duration, setDuration] = useState(30); // default 30 minutes
+
+  // Generate duration options (5 to 720 minutes)
+  const durationOptions = Array.from({ length: (720 - 5) / 5 + 1 }, (_, i) => 5 + i * 5);
 
   const tokenExchangeAttempted = useRef(false);
 
@@ -268,6 +272,7 @@ function App() {
       const params = {
         activity,
         sourcePlaylistId: selectedPlaylistId,
+        duration,
       };
       
       let token = accessToken;
@@ -441,6 +446,19 @@ function App() {
                 {playlists.length === 0 && <option value="">No playlists found</option>}
                 {playlists.map(p => (
                   <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#fff' }}>
+                Duration (minutes)
+              </label>
+              <select
+                value={duration}
+                onChange={e => setDuration(Number(e.target.value))}
+                className="spotify-input"
+                style={{ width: '100%', marginBottom: '16px', padding: '12px', borderRadius: '8px', border: '1px solid #282828', background: '#222', color: '#fff' }}
+              >
+                {durationOptions.map(mins => (
+                  <option key={mins} value={mins}>{mins} min</option>
                 ))}
               </select>
               <button 

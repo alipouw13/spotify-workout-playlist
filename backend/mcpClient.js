@@ -359,7 +359,7 @@ function selectTracksForDuration(tracks, durationMin) {
       }
     }
   }
-  return best;
+  return best.length > 0 ? best : tracks;
 }
 
 // New: Get a list of user's playlists (id and name only)
@@ -374,15 +374,16 @@ async function getUserPlaylistSummaries(accessToken) {
   return playlists;
 }
 
-// Update generateWorkoutPlaylist to use a source playlist and add 10 tracks from it
+// Update generateWorkoutPlaylist to use duration and select tracks accordingly
 async function generateWorkoutPlaylist(params, accessToken) {
-  const { activity, sourcePlaylistId } = params;
+  const { activity, sourcePlaylistId, duration } = params;
   const playlistName = `Workout: ${activity}`;
   const playlistDescription = `Generated workout playlist for ${activity} using tracks from your playlist.`;
   const user = await getCurrentUser(accessToken);
-  // Get 10 tracks from the selected playlist
+  // Get all tracks from the selected playlist
   const sourceTracks = await getTracksFromPlaylist(sourcePlaylistId, accessToken);
-  const selectedTracks = sourceTracks.slice(0, 10);
+  // Select tracks to fit the requested duration
+  const selectedTracks = selectTracksForDuration(sourceTracks, duration || 30);
   // Create the playlist
   const playlist = await createPlaylist(user.id, playlistName, playlistDescription, false, accessToken);
   // Add tracks to playlist (in one batch)
