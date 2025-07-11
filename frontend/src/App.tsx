@@ -5,7 +5,6 @@ import spotifyLogo from './assets/spotify-logo.png'; // Use the PNG logo from sr
 const API_BASE_URL = 'http://localhost:4000/api';
 
 const activities = ['Running', 'Cycling', 'Gym', 'Yoga']
-const bpms = ['Any', 'Fast', 'Slow']
 
 // Type definitions
 interface SpotifyUser {
@@ -68,8 +67,6 @@ async function refreshToken(setAccessToken: (token: string) => void) {
 
 function App() {
   const [activity, setActivity] = useState('Running')
-  const [duration, setDuration] = useState(30)
-  const [bpm, setBpm] = useState('Any')
   const [step, setStep] = useState(1)
   const [generatedPlaylist, setGeneratedPlaylist] = useState<GeneratedPlaylist | null>(null)
   const [loading, setLoading] = useState(false)
@@ -77,6 +74,8 @@ function App() {
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [user, setUser] = useState<SpotifyUser | null>(null);
+  const [playlists, setPlaylists] = useState<{ id: string; name: string }[]>([]);
+  const [selectedPlaylistId, setSelectedPlaylistId] = useState<string>('');
 
   // On mount, check for access token in localStorage or URL
   useEffect(() => {
@@ -143,6 +142,23 @@ function App() {
     }
   }, [isAuthenticated, accessToken]);
 
+  // Fetch playlists when authenticated
+  useEffect(() => {
+    if (isAuthenticated && accessToken) {
+      fetch(`${API_BASE_URL}/user/playlists`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      })
+        .then(res => res.json())
+        .then(data => {
+          setPlaylists(data);
+          if (data.length > 0) setSelectedPlaylistId(data[0].id);
+        })
+        .catch(() => setPlaylists([]));
+    }
+  }, [isAuthenticated, accessToken]);
+
   // Filter genres for typeahead
   // const filteredGenres = genresList.filter(g =>
   //   g.toLowerCase().includes(genreInput.toLowerCase())
@@ -183,12 +199,17 @@ function App() {
     setLoading(true);
     setError(null);
     setGeneratedPlaylist(null);
-    
+
+    if (!selectedPlaylistId) {
+      setError('Please select a playlist to use as a source.');
+      setLoading(false);
+      return;
+    }
+
     try {
       const params = {
         activity,
-        duration,
-        bpm,
+        sourcePlaylistId: selectedPlaylistId,
       };
       
       let token = accessToken;
@@ -350,33 +371,20 @@ function App() {
                   <option key={a} value={a}>{a}</option>
                 ))}
               </select>
-
               <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#fff' }}>
-                Duration (minutes)
+                Source Playlist
               </label>
-              <input
-                type="number"
-                value={duration}
-                onChange={(e) => setDuration(parseInt(e.target.value) || 30)}
-                min="5"
-                max="180"
-                className="spotify-input"
-              />
-
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#fff' }}>
-                BPM Preference
-              </label>
-              <select 
-                value={bpm} 
-                onChange={(e) => setBpm(e.target.value)}
+              <select
+                value={selectedPlaylistId}
+                onChange={e => setSelectedPlaylistId(e.target.value)}
                 className="spotify-input"
                 style={{ width: '100%', marginBottom: '16px', padding: '12px', borderRadius: '8px', border: '1px solid #282828', background: '#222', color: '#fff' }}
               >
-                {bpms.map(b => (
-                  <option key={b} value={b}>{b}</option>
+                {playlists.length === 0 && <option value="">No playlists found</option>}
+                {playlists.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
               </select>
-
               <button 
                 type="submit"
                 disabled={loading}

@@ -37,6 +37,13 @@ function getSpotifyAuthUrl() {
       'user-read-private',
       'user-read-email',
       'user-library-read',
+      'user-library-modify',
+      'user-read-playback-state',
+      'user-modify-playback-state',
+      'user-read-currently-playing',
+      'user-read-recently-played',
+      'user-top-read',
+      'ugc-image-upload',
     ].join(' '),
   });
   return {
@@ -271,23 +278,124 @@ async function getTrackRecommendations(seedArtists = [], seedGenres = [], seedTr
   }
 }
 
-// Generate a workout playlist
+// Helper: Get tracks from a playlist
+async function getTracksFromPlaylist(playlistId, accessToken) {
+  let tracks = [];
+  let next = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=100`;
+  while (next) {
+    const response = await axios.get(next, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    tracks = tracks.concat(response.data.items.map(item => item.track));
+    next = response.data.next;
+  }
+  return tracks;
+}
+
+// Helper: Get tracks from a saved album
+async function getTracksFromAlbum(albumId, accessToken) {
+  const response = await axios.get(`https://api.spotify.com/v1/albums/${albumId}/tracks?limit=50`, {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  });
+  return response.data.items;
+}
+
+// Helper: Get audio features (BPM) for a list of track IDs
+async function getAudioFeatures(trackIds, accessToken) {
+  const features = {};
+  // Filter out invalid/empty IDs
+  const validTrackIds = trackIds.filter(id => typeof id === 'string' && id.length > 0);
+  for (let i = 0; i < validTrackIds.length; i += 100) {
+    const batch = validTrackIds.slice(i, i + 100);
+    if (batch.length === 0) continue;
+    try {
+      const response = await axios.get('https://api.spotify.com/v1/audio-features', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        params: { ids: batch.join(',') }
+      });
+      for (const feat of response.data.audio_features) {
+        if (feat) features[feat.id] = feat;
+      }
+    } catch (error) {
+      console.error('Spotify audio-features error:', error.response?.data || error.message, error.response?.headers || '');
+      throw new Error('Failed to fetch audio features from Spotify');
+    }
+  }
+  return features;
+}
+
+// Helper: Filter tracks by BPM preference
+function filterTracksByBpm(tracks, audioFeatures, bpmPref) {
+  let minBpm = 0, maxBpm = 1000;
+  if (bpmPref === 'Fast') { minBpm = 120; maxBpm = 1000; }
+  else if (bpmPref === 'Slow') { minBpm = 0; maxBpm = 110; }
+  // 'Any' or undefined: no filter
+  return tracks.filter(track => {
+    const feat = audioFeatures[track.id];
+    return feat && feat.tempo >= minBpm && feat.tempo <= maxBpm;
+  });
+}
+
+// Helper: Select tracks to fit duration (±2 min)
+function selectTracksForDuration(tracks, durationMin) {
+  const durationMs = durationMin * 60 * 1000;
+  const minMs = (durationMin - 2) * 60 * 1000;
+  const maxMs = (durationMin + 2) * 60 * 1000;
+  // Greedy: shuffle and add until close to target
+  let best = [], bestDiff = Infinity;
+  for (let attempt = 0; attempt < 10; ++attempt) {
+    const shuffled = tracks.slice().sort(() => Math.random() - 0.5);
+    let sum = 0, selected = [];
+    for (const t of shuffled) {
+      if (sum + t.duration_ms > maxMs) break;
+      selected.push(t);
+      sum += t.duration_ms;
+      if (sum >= minMs && Math.abs(sum - durationMs) < bestDiff) {
+        best = selected.slice();
+        bestDiff = Math.abs(sum - durationMs);
+      }
+    }
+  }
+  return best;
+}
+
+// New: Get a list of user's playlists (id and name only)
+async function getUserPlaylistSummaries(accessToken) {
+  let playlists = [];
+  let offset = 0, page;
+  do {
+    page = await getUserPlaylists(accessToken, 50, offset);
+    playlists = playlists.concat(page.items.map(p => ({ id: p.id, name: p.name })));
+    offset += 50;
+  } while (page.next);
+  return playlists;
+}
+
+// Update generateWorkoutPlaylist to use a source playlist and add 10 tracks from it
 async function generateWorkoutPlaylist(params, accessToken) {
-  // Extract parameters
-  const { activity, duration, bpm } = params;
-  // Compose playlist name and description
+  const { activity, sourcePlaylistId } = params;
   const playlistName = `Workout: ${activity}`;
-  const playlistDescription = `Generated workout playlist for ${activity}${bpm ? `, BPM: ${bpm}` : ''}. Duration: ${duration} minutes.`;
-  // Get current user
+  const playlistDescription = `Generated workout playlist for ${activity} using tracks from your playlist.`;
   const user = await getCurrentUser(accessToken);
+  // Get 10 tracks from the selected playlist
+  const sourceTracks = await getTracksFromPlaylist(sourcePlaylistId, accessToken);
+  const selectedTracks = sourceTracks.slice(0, 10);
   // Create the playlist
   const playlist = await createPlaylist(user.id, playlistName, playlistDescription, false, accessToken);
-  // Return playlist info (tracks can be added later if needed)
+  // Add tracks to playlist (in one batch)
+  const batch = selectedTracks.map(t => `spotify:track:${t.id}`);
+  if (batch.length > 0) await addTracksToPlaylist(playlist.id, batch, accessToken);
   return {
     playlistId: playlist.id,
     playlistName: playlist.name,
     playlistUrl: playlist.external_urls?.spotify,
-    tracks: [],
+    tracks: selectedTracks.map(t => ({
+      uri: `spotify:track:${t.id}`,
+      name: t.name,
+      artist: t.artists?.map(a => a.name).join(', '),
+      album: t.album?.name || '',
+      duration_ms: t.duration_ms
+    })),
     user: {
       id: user.id,
       displayName: user.display_name
@@ -302,6 +410,7 @@ module.exports = {
   getCurrentUser,
   getUserSavedAlbums,
   getUserPlaylists,
+  getUserPlaylistSummaries, // export new function
   createPlaylist,
   addTracksToPlaylist,
   getPlaylistCover,

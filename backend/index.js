@@ -111,23 +111,14 @@ app.get('/api/user/albums', async (req, res) => {
   }
 });
 
-// Get user's playlists
+// Endpoint: Get user's playlists (id and name only)
 app.get('/api/user/playlists', async (req, res) => {
   try {
     const accessToken = req.headers['authorization']?.split(' ')[1];
     if (!accessToken) {
       return res.status(401).json({ error: 'No access token provided' });
     }
-    
-    const limit = parseInt(req.query.limit) || 20;
-    const offset = parseInt(req.query.offset) || 0;
-    
-    const playlists = await withTokenRefresh(
-      (token) => mcpClient.getUserPlaylists(token, limit, offset),
-      accessToken,
-      req.headers['x-refresh-token'],
-      res
-    );
+    const playlists = await mcpClient.getUserPlaylistSummaries(accessToken);
     res.json(playlists);
   } catch (error) {
     console.error('Get user playlists error:', error);
@@ -156,19 +147,17 @@ app.get('/api/genres', async (req, res) => {
   }
 });
 
-// Generate workout playlist
+// Update: Generate workout playlist (require sourcePlaylistId)
 app.post('/api/generate-playlist', async (req, res) => {
   try {
     const accessToken = req.headers['authorization']?.split(' ')[1];
     if (!accessToken) {
       return res.status(401).json({ error: 'No access token provided' });
     }
-    
     const params = req.body;
-    if (!params.activity) {
-      return res.status(400).json({ error: 'Missing required parameter: activity' });
+    if (!params.activity || !params.sourcePlaylistId) {
+      return res.status(400).json({ error: 'Missing required parameter: activity or sourcePlaylistId' });
     }
-    
     const playlistData = await withTokenRefresh(
       (token) => mcpClient.generateWorkoutPlaylist(params, token),
       accessToken,
