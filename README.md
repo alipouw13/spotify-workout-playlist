@@ -1,5 +1,7 @@
 # Spotify Workout Playlist Generator
 
+> **Disclaimer:** This project is ongoing and intentionally simple, designed to prove out core functionality. Features and code structure may change as development continues.
+
 A web app to generate custom workout playlists from your Spotify library and playlists.
 
 ## Features
@@ -155,3 +157,4 @@ Before you begin, you'll need a Spotify Developer account and a registered app:
 ## License
 
 This project is licensed under the MIT License 
+
