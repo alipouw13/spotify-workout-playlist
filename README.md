@@ -12,13 +12,19 @@ A web app to generate custom workout playlists from your Spotify library and pla
 - **Modern, Spotify-inspired UI**
 - **Playlist is created in your Spotify account** with a link to open in Spotify
 
-## Screenshots
+## Workflow
 
-| Login Page | Playlist Generator | Playlist Created |
-|---|---|---|
-| ![Login](frontend/src/assets/screenshot1.png) | ![Generator](frontend/src/assets/screenshot2.png) | ![Created](frontend/src/assets/screenshot3.png) |
+1. Login
+![Login](frontend/src/assets/login.png)
 
-> _Place your screenshots in the `frontend/src/assets/` folder as `screenshot1.png`, `screenshot2.png`, and `screenshot3.png`._
+2. Authentication
+![Authentication](frontend/src/assets/connection.png)
+
+3. Playlist Generation
+![Generator](frontend/src/assets/selection.png)
+
+4. Playlist Creation
+![Created](frontend/src/assets/creation.png) |
 
 ## Getting Started
 
