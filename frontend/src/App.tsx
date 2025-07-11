@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import './App.css'
+import spotifyLogo from './assets/spotify-logo.svg'; // Add a Spotify logo SVG to assets
 
 const API_BASE_URL = 'http://localhost:4000/api';
 
@@ -245,81 +246,51 @@ function App() {
     }
   }
 
-  // Shared Spotify-style background and card wrapper for all pages
-  const spotifyBg = (
-    <div style={{
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: 'linear-gradient(135deg, #1db954 0%, #1ed760 50%, #1db954 100%)',
-      zIndex: -1
-    }} />
-  );
-
-  const cardStyle = {
-    background: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: '12px',
-    padding: '32px',
-    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
-    backdropFilter: 'blur(10px)',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-    maxWidth: '500px',
-    width: '100%',
-    margin: '0 auto'
-  };
-
-  const inputStyle = {
-    width: '100%',
-    padding: '12px 16px',
-    border: '2px solid #e0e0e0',
-    borderRadius: '8px',
-    fontSize: '16px',
-    transition: 'border-color 0.3s ease',
-    boxSizing: 'border-box' as const,
-    marginBottom: '16px'
-  };
-
-  const buttonStyle = {
-    width: '100%',
-    padding: '14px 24px',
-    backgroundColor: '#1db954',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '16px',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-    transition: 'background-color 0.3s ease',
-    marginBottom: '12px'
-  };
-
-  const selectStyle = {
-    ...inputStyle,
-    backgroundColor: 'white'
-  };
-
   // Login page
   if (!isAuthenticated) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-        {spotifyBg}
-        <div style={cardStyle}>
-          <h1 style={{ textAlign: 'center', color: '#1db954', marginBottom: '32px', fontSize: '2.5rem' }}>
-            🎵 Workout Playlist Generator
-          </h1>
-          <p style={{ textAlign: 'center', color: '#666', marginBottom: '32px', fontSize: '1.1rem' }}>
-            Create personalized workout playlists with your favorite music from Spotify
-          </p>
+      <div className="centered-container">
+        <img src={spotifyLogo} alt="Spotify" className="spotify-logo" />
+        <div className="spotify-card">
+          <div className="spotify-title">Running Assistant</div>
+          <div className="spotify-subtitle">Allow Spotify to connect to your account</div>
+          {user && (
+            <div className="spotify-user">
+              {user.images && user.images[0] && (
+                <img src={user.images[0].url} alt="avatar" className="spotify-avatar" />
+              )}
+              <span>{user.display_name || user.id}</span>
+            </div>
+          )}
+          <div className="spotify-permissions">
+            <h4>View your Spotify account data</h4>
+            <ul>
+              <li>Your email</li>
+              <li>Your Spotify subscription, account country, and explicit content filter settings.</li>
+              <li>Your name, username, profile picture, Spotify followers, and public playlists.</li>
+            </ul>
+            <h4>View your activity on Spotify</h4>
+            <ul>
+              <li>What you've saved in Your Library</li>
+              <li>Playlists you've created and playlists you follow</li>
+            </ul>
+            <h4>Take actions in Spotify on your behalf</h4>
+            <ul>
+              <li>Create, edit, and follow private playlists</li>
+              <li>Create, edit, and follow playlists</li>
+            </ul>
+          </div>
           <button 
             onClick={handleLogin}
-            style={buttonStyle}
-            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#1ed760'}
-            onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#1db954'}
+            className="spotify-btn"
           >
             Connect with Spotify
           </button>
+          <div className="spotify-cancel" onClick={() => window.location.reload()}>Cancel</div>
+          <div className="spotify-legal">
+            You can remove this access at any time in your account settings.<br />
+            For more information about how Running Assistant can use your personal data, please see Running Assistant's privacy policy.
+          </div>
           {error && (
             <p style={{ color: '#e74c3c', textAlign: 'center', marginTop: '16px' }}>
               {error}
@@ -332,229 +303,161 @@ function App() {
 
   // Main app content
   return (
-    <div style={{ minHeight: '100vh', padding: '20px', position: 'relative' }}>
-      {spotifyBg}
-      
-      {/* Header */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        marginBottom: '32px',
-        color: 'white'
-      }}>
-        <h1 style={{ margin: 0, fontSize: '2rem' }}>🎵 Workout Playlist Generator</h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+    <div className="centered-container">
+      <div className="spotify-card">
+        {/* Header */}
+        <div style={{ marginBottom: '32px' }}>
+          <div className="spotify-title" style={{ textAlign: 'left' }}>Workout Playlist Generator</div>
           {user && (
-            <span style={{ fontSize: '1rem' }}>
-              Welcome, {user.display_name || user.id}!
-            </span>
+            <div className="spotify-user" style={{ justifyContent: 'flex-start' }}>
+              {user.images && user.images[0] && (
+                <img src={user.images[0].url} alt="avatar" className="spotify-avatar" />
+              )}
+              <span>Welcome, {user.display_name || user.id}!</span>
+            </div>
           )}
           <button 
             onClick={handleLogout}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: 'rgba(255, 255, 255, 0.2)',
-              color: 'white',
-              border: '1px solid rgba(255, 255, 255, 0.3)',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
+            className="spotify-cancel"
+            style={{ float: 'right', marginTop: '-32px', marginRight: '-8px', background: 'none', border: 'none' }}
           >
             Logout
           </button>
         </div>
-      </div>
 
-      {/* Step 1: Playlist Configuration */}
-      {step === 1 && (
-        <div style={cardStyle}>
-          <h2 style={{ textAlign: 'center', color: '#1db954', marginBottom: '24px' }}>
-            Create Your Workout Playlist
-          </h2>
-          
-          <form onSubmit={handleGeneratePlaylist}>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>
-              Activity Type
-            </label>
-            <select 
-              value={activity} 
-              onChange={(e) => setActivity(e.target.value)}
-              style={selectStyle}
-            >
-              {activities.map(a => (
-                <option key={a} value={a}>{a}</option>
-              ))}
-            </select>
-
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>
-              Duration (minutes)
-            </label>
-            <input
-              type="number"
-              value={duration}
-              onChange={(e) => setDuration(parseInt(e.target.value) || 30)}
-              min="5"
-              max="180"
-              style={inputStyle}
-            />
-
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>
-              BPM Preference
-            </label>
-            <select 
-              value={bpm} 
-              onChange={(e) => setBpm(e.target.value)}
-              style={selectStyle}
-            >
-              {bpms.map(b => (
-                <option key={b} value={b}>{b}</option>
-              ))}
-            </select>
-
-            <button 
-              type="submit"
-              disabled={loading}
-              style={{
-                ...buttonStyle,
-                opacity: loading ? 0.7 : 1,
-                cursor: loading ? 'not-allowed' : 'pointer'
-              }}
-              onMouseOver={(e) => !loading && (e.currentTarget.style.backgroundColor = '#1ed760')}
-              onMouseOut={(e) => !loading && (e.currentTarget.style.backgroundColor = '#1db954')}
-            >
-              {loading ? 'Creating Playlist...' : 'Generate Playlist'}
-            </button>
-          </form>
-
-          {error && (
-            <p style={{ color: '#e74c3c', textAlign: 'center', marginTop: '16px' }}>
-              {error}
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Step 2: Generated Playlist */}
-      {step === 2 && generatedPlaylist && (
-        <div style={cardStyle}>
-          <h2 style={{ textAlign: 'center', color: '#1db954', marginBottom: '24px' }}>
-            🎉 Playlist Created Successfully!
-          </h2>
-          
-          <div style={{ 
-            backgroundColor: '#f8f9fa', 
-            padding: '20px', 
-            borderRadius: '8px', 
-            marginBottom: '24px' 
-          }}>
-            <h3 style={{ color: '#333', marginBottom: '12px' }}>
-              {generatedPlaylist.playlistName}
-            </h3>
-            <p style={{ color: '#666', marginBottom: '16px' }}>
-              Created by: {generatedPlaylist.user?.displayName || generatedPlaylist.user?.id}
-            </p>
-            <p style={{ color: '#666', marginBottom: '16px' }}>
-              Tracks added: {generatedPlaylist.tracks?.length || 0}
-            </p>
-            
-            {generatedPlaylist.playlistUrl && (
-              <a 
-                href={generatedPlaylist.playlistUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: 'inline-block',
-                  backgroundColor: '#1db954',
-                  color: 'white',
-                  padding: '12px 24px',
-                  textDecoration: 'none',
-                  borderRadius: '6px',
-                  fontWeight: 'bold',
-                  marginTop: '8px'
-                }}
+        {/* Step 1: Playlist Configuration */}
+        {step === 1 && (
+          <div>
+            <h2 className="spotify-title" style={{ fontSize: '1.3rem', marginBottom: '24px', color: '#1db954' }}>
+              Create Your Workout Playlist
+            </h2>
+            <form onSubmit={handleGeneratePlaylist}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#fff' }}>
+                Activity Type
+              </label>
+              <select 
+                value={activity} 
+                onChange={(e) => setActivity(e.target.value)}
+                className="spotify-input"
+                style={{ width: '100%', marginBottom: '16px', padding: '12px', borderRadius: '8px', border: '1px solid #282828', background: '#222', color: '#fff' }}
               >
-                Open in Spotify
-              </a>
-            )}
-          </div>
-
-          {generatedPlaylist.tracks && generatedPlaylist.tracks.length > 0 && (
-            <div style={{ marginBottom: '24px' }}>
-              <h4 style={{ color: '#333', marginBottom: '12px' }}>Added Tracks:</h4>
-              <div style={{ 
-                maxHeight: '300px', 
-                overflowY: 'auto',
-                border: '1px solid #e0e0e0',
-                borderRadius: '6px',
-                padding: '12px'
-              }}>
-                {generatedPlaylist.tracks.map((track: Track, index: number) => (
-                  <div key={index} style={{ 
-                    padding: '8px 0', 
-                    borderBottom: index < generatedPlaylist.tracks.length - 1 ? '1px solid #f0f0f0' : 'none',
-                    fontSize: '14px'
-                  }}>
-                    <div style={{ fontWeight: 'bold', color: '#333' }}>{track.name}</div>
-                    <div style={{ color: '#666', fontSize: '12px' }}>
-                      {track.artist} • {track.album}
-                    </div>
-                  </div>
+                {activities.map(a => (
+                  <option key={a} value={a}>{a}</option>
                 ))}
-              </div>
-            </div>
-          )}
+              </select>
 
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button 
-              onClick={() => {
-                setStep(1);
-                setGeneratedPlaylist(null);
-                setError(null);
-              }}
-              style={{
-                ...buttonStyle,
-                backgroundColor: '#6c757d',
-                flex: 1
-              }}
-              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#5a6268'}
-              onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#6c757d'}
-            >
-              Create Another Playlist
-            </button>
-            
-            {generatedPlaylist.playlistUrl && (
-              <button 
-                onClick={() => window.open(generatedPlaylist.playlistUrl, '_blank')}
-                style={{
-                  ...buttonStyle,
-                  flex: 1
-                }}
-                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#1ed760'}
-                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#1db954'}
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#fff' }}>
+                Duration (minutes)
+              </label>
+              <input
+                type="number"
+                value={duration}
+                onChange={(e) => setDuration(parseInt(e.target.value) || 30)}
+                min="5"
+                max="180"
+                className="spotify-input"
+                style={{ width: '100%', marginBottom: '16px', padding: '12px', borderRadius: '8px', border: '1px solid #282828', background: '#222', color: '#fff' }}
+              />
+
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#fff' }}>
+                BPM Preference
+              </label>
+              <select 
+                value={bpm} 
+                onChange={(e) => setBpm(e.target.value)}
+                className="spotify-input"
+                style={{ width: '100%', marginBottom: '16px', padding: '12px', borderRadius: '8px', border: '1px solid #282828', background: '#222', color: '#fff' }}
               >
-                Open in Spotify
+                {bpms.map(b => (
+                  <option key={b} value={b}>{b}</option>
+                ))}
+              </select>
+
+              <button 
+                type="submit"
+                disabled={loading}
+                className="spotify-btn"
+                style={{ opacity: loading ? 0.7 : 1 }}
+              >
+                {loading ? 'Creating Playlist...' : 'Generate Playlist'}
               </button>
+            </form>
+            {error && (
+              <p style={{ color: '#e74c3c', textAlign: 'center', marginTop: '16px' }}>
+                {error}
+              </p>
             )}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Click outside to close genre dropdown */}
-      {/* genreDropdownOpen && (
-        <div 
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 999
-          }}
-          onClick={() => setGenreDropdownOpen(false)}
-        />
-      ) */}
+        {/* Step 2: Generated Playlist */}
+        {step === 2 && generatedPlaylist && (
+          <div>
+            <h2 className="spotify-title" style={{ color: '#1db954', marginBottom: '24px' }}>
+              🎉 Playlist Created Successfully!
+            </h2>
+            <div style={{ backgroundColor: '#222', padding: '20px', borderRadius: '8px', marginBottom: '24px' }}>
+              <h3 style={{ color: '#fff', marginBottom: '12px' }}>
+                {generatedPlaylist.playlistName}
+              </h3>
+              <p style={{ color: '#b3b3b3', marginBottom: '16px' }}>
+                Created by: {generatedPlaylist.user?.displayName || generatedPlaylist.user?.id}
+              </p>
+              <p style={{ color: '#b3b3b3', marginBottom: '16px' }}>
+                Tracks added: {generatedPlaylist.tracks?.length || 0}
+              </p>
+              {generatedPlaylist.playlistUrl && (
+                <a 
+                  href={generatedPlaylist.playlistUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="spotify-btn"
+                  style={{ display: 'inline-block', width: 'auto', padding: '12px 32px', margin: '0 auto' }}
+                >
+                  Open in Spotify
+                </a>
+              )}
+            </div>
+            {generatedPlaylist.tracks && generatedPlaylist.tracks.length > 0 && (
+              <div style={{ marginBottom: '24px' }}>
+                <h4 style={{ color: '#fff', marginBottom: '12px' }}>Added Tracks:</h4>
+                <div style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid #282828', borderRadius: '6px', padding: '12px', background: '#181818' }}>
+                  {generatedPlaylist.tracks.map((track: Track, index: number) => (
+                    <div key={index} style={{ padding: '8px 0', borderBottom: index < generatedPlaylist.tracks.length - 1 ? '1px solid #222' : 'none', fontSize: '14px', color: '#fff' }}>
+                      <div style={{ fontWeight: 'bold' }}>{track.name}</div>
+                      <div style={{ color: '#b3b3b3', fontSize: '12px' }}>
+                        {track.artist} • {track.album}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button 
+                onClick={() => {
+                  setStep(1);
+                  setGeneratedPlaylist(null);
+                  setError(null);
+                }}
+                className="spotify-btn"
+                style={{ background: '#282828', color: '#fff', flex: 1 }}
+              >
+                Create Another Playlist
+              </button>
+              {generatedPlaylist.playlistUrl && (
+                <button 
+                  onClick={() => window.open(generatedPlaylist.playlistUrl, '_blank')}
+                  className="spotify-btn"
+                  style={{ flex: 1 }}
+                >
+                  Open in Spotify
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

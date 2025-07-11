@@ -2,22 +2,24 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 const mcpClient = require('./mcpClient');
+const cookieParser = require('cookie-parser');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-app.use(cors());
+app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
 app.use(express.json());
+app.use(cookieParser());
 
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-// Start Spotify auth flow with PKCE
+// Start Spotify auth with PKCE
 app.get('/api/auth/start', (req, res) => {
   try {
-    const authData = mcpClient.getSpotifyAuthUrl();
+    const authData = mcpClient.getSpotifyAuthUrl(res);
     res.json(authData);
   } catch (error) {
     console.error('Auth start error:', error);
@@ -33,7 +35,7 @@ app.post('/api/auth/token', async (req, res) => {
       return res.status(400).json({ error: 'Missing code or state parameter' });
     }
     
-    const data = await mcpClient.exchangeCodeForToken(code, state);
+    const data = await mcpClient.exchangeCodeForToken(code, state, req, res);
     res.json(data);
   } catch (error) {
     console.error('Token exchange error:', error);
