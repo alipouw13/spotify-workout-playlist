@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import './App.css'
-import spotifyLogo from './assets/spotify-logo.svg'; // Add a Spotify logo SVG to assets
+import spotifyLogo from './assets/spotify-logo.png'; // Use the PNG logo from src/assets
 
 const API_BASE_URL = 'http://localhost:4000/api';
 
@@ -250,7 +250,9 @@ function App() {
   if (!isAuthenticated) {
     return (
       <div className="centered-container">
-        <img src={spotifyLogo} alt="Spotify" className="spotify-logo" />
+        <div style={{ position: 'absolute', top: 24, left: 24, display: 'flex', alignItems: 'center', zIndex: 10 }}>
+          <img src={spotifyLogo} alt="Spotify" style={{ width: 48, height: 48, marginRight: 12 }} />
+        </div>
         <div className="spotify-card">
           <div className="spotify-title">Running Assistant</div>
           <div className="spotify-subtitle">Allow Spotify to connect to your account</div>
@@ -304,6 +306,9 @@ function App() {
   // Main app content
   return (
     <div className="centered-container">
+      <div style={{ position: 'absolute', top: 24, left: 24, display: 'flex', alignItems: 'center', zIndex: 10 }}>
+        <img src={spotifyLogo} alt="Spotify" style={{ width: 48, height: 48, marginRight: 12 }} />
+      </div>
       <div className="spotify-card">
         {/* Header */}
         <div style={{ marginBottom: '32px' }}>
