@@ -99,16 +99,37 @@ Before you begin, you'll need a Spotify Developer account and a registered app:
 
 ### Running the App Locally (Development)
 
-1. **(Optional) Create a Python virtual environment**
+1. **Set up your development environment**
+   
+   **For Python scripts and tests:**
    
    If you plan to run Python scripts or tests (e.g., in the `tests/` folder), it's recommended to create a virtual environment in the project root:
    
    ```bash
+   # (optional) set pythin verion path if required
+   $env:Path = "C:\Users\alisonpouw\AppData\Local\Programs\Python\Python311;$env:Path"
+
+   # Create virtual environment
    python -m venv venv
+   
    # Activate on Windows:
    venv\Scripts\activate
+   
    # Activate on macOS/Linux:
    source venv/bin/activate
+   
+   # Install Python dependencies (if any)
+   pip install -r requirements.txt  # if you have a requirements.txt file
+   ```
+   
+   **For Node.js scripts and tests:**
+   
+   The test scripts in the `tests/` folder use Node.js dependencies. Install them:
+   
+   ```bash
+   cd tests
+   npm install
+   cd ..
    ```
 
 2. **Install dependencies**
@@ -131,7 +152,7 @@ Before you begin, you'll need a Spotify Developer account and a registered app:
    
    In the `backend/` directory:
    ```bash
-   npm start
+   node index.js
    ```
    By default, the backend runs on [http://localhost:4000](http://localhost:4000)
 
@@ -170,7 +191,3 @@ The script will:
 3. Show you the list and ask for confirmation before deleting
 
 > **Note:** The script uses the same environment variables as your backend. Make sure your `backend/.env` file is accessible.
-
-## Customization
-
-- Add your own screenshots to `
