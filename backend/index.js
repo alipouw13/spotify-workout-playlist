@@ -111,17 +111,33 @@ app.get('/api/user/albums', async (req, res) => {
   }
 });
 
-// Endpoint: Get user's playlists (id and name only)
+// Update: Get user's playlists (id, name, image)
 app.get('/api/user/playlists', async (req, res) => {
   try {
     const accessToken = req.headers['authorization']?.split(' ')[1];
     if (!accessToken) {
       return res.status(401).json({ error: 'No access token provided' });
     }
-    const playlists = await mcpClient.getUserPlaylistSummaries(accessToken);
-    res.json(playlists);
+    const playlists = await mcpClient.getUserPlaylistsWithImages(accessToken);
+    res.json({ items: playlists });
   } catch (error) {
     console.error('Get user playlists error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// New: Get tracks for a playlist
+app.get('/api/playlists/:playlistId/tracks', async (req, res) => {
+  try {
+    const accessToken = req.headers['authorization']?.split(' ')[1];
+    if (!accessToken) {
+      return res.status(401).json({ error: 'No access token provided' });
+    }
+    const { playlistId } = req.params;
+    const tracks = await mcpClient.getTracksForPlaylist(playlistId, accessToken);
+    res.json({ tracks });
+  } catch (error) {
+    console.error('Get playlist tracks error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -147,7 +163,7 @@ app.get('/api/genres', async (req, res) => {
   }
 });
 
-// Update: Generate workout playlist (require sourcePlaylistId)
+// Generate playlist with selected songs and auto-complete
 app.post('/api/generate-playlist', async (req, res) => {
   try {
     const accessToken = req.headers['authorization']?.split(' ')[1];
@@ -155,6 +171,17 @@ app.post('/api/generate-playlist', async (req, res) => {
       return res.status(401).json({ error: 'No access token provided' });
     }
     const params = req.body;
+    // New flow: selectedSongUris and autoCompleteSource
+    if (params.selectedSongUris && params.autoCompleteSourceId && params.autoCompleteSourceType) {
+      const playlistData = await withTokenRefresh(
+        (token) => mcpClient.generateCustomPlaylist(params, token),
+        accessToken,
+        req.headers['x-refresh-token'],
+        res
+      );
+      return res.json(playlistData);
+    }
+    // Old flow: sourcePlaylistId only
     if (!params.activity || !params.sourcePlaylistId) {
       return res.status(400).json({ error: 'Missing required parameter: activity or sourcePlaylistId' });
     }
@@ -290,6 +317,31 @@ app.get('/api/search/tracks', async (req, res) => {
     res.json({ tracks });
   } catch (error) {
     console.error('Search tracks error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Search user's saved tracks and playlists
+app.get('/api/search/songs', async (req, res) => {
+  try {
+    const accessToken = req.headers['authorization']?.split(' ')[1];
+    if (!accessToken) {
+      return res.status(401).json({ error: 'No access token provided' });
+    }
+    const { q = '', limit = 20, offset = 0 } = req.query;
+    if (!q) {
+      return res.status(400).json({ error: 'Missing search query' });
+    }
+    // Use mcpClient to search user's library and playlists
+    const tracks = await withTokenRefresh(
+      (token) => mcpClient.searchUserSongs(q, parseInt(limit), parseInt(offset), token),
+      accessToken,
+      req.headers['x-refresh-token'],
+      res
+    );
+    res.json({ tracks });
+  } catch (error) {
+    console.error('Search user songs error:', error);
     res.status(500).json({ error: error.message });
   }
 });

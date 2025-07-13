@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import './App.css'
 import spotifyLogo from './assets/spotify-logo.png'; // Use the PNG logo from src/assets
+import SelectSongs, { type Track as SongTrack } from './SelectSongs';
+import SelectAutoCompleteSource from './SelectAutoCompleteSource';
 
 const API_BASE_URL = 'http://localhost:4000/api';
 
@@ -31,6 +33,12 @@ interface GeneratedPlaylist {
     id: string;
     displayName?: string;
   };
+}
+
+interface AutoCompleteSource {
+  id: string;
+  name: string;
+  type: 'playlist' | 'album';
 }
 
 // Add a function to refresh the access token
@@ -77,6 +85,9 @@ function App() {
   const [playlists, setPlaylists] = useState<{ id: string; name: string }[]>([]);
   const [selectedPlaylistId, setSelectedPlaylistId] = useState<string>('');
   const [duration, setDuration] = useState(30); // default 30 minutes
+  // New state for song selection and auto-complete source
+  const [selectedSongs, setSelectedSongs] = useState<SongTrack[]>([]);
+  const [autoCompleteSource, setAutoCompleteSource] = useState<AutoCompleteSource | null>(null);
   const [playlistName, setPlaylistName] = useState('');
 
   // Generate duration options (5 to 720 minutes)
@@ -215,8 +226,9 @@ function App() {
       })
         .then(res => res.json())
         .then(data => {
-          setPlaylists(data);
-          if (data.length > 0) setSelectedPlaylistId(data[0].id);
+          const items = Array.isArray(data) ? data : data.items;
+          setPlaylists(items || []);
+          if (items && items.length > 0) setSelectedPlaylistId(items[0].id);
         })
         .catch(() => setPlaylists([]));
     }
@@ -475,12 +487,12 @@ function App() {
                 ))}
               </select>
               <button 
-                type="submit"
-                disabled={loading}
+                type="button"
                 className="spotify-btn"
-                style={{ opacity: loading ? 0.7 : 1 }}
+                onClick={() => setStep(2)}
+                style={{ marginTop: '16px' }}
               >
-                {loading ? 'Creating Playlist...' : 'Generate Playlist'}
+                Next: Select Songs
               </button>
             </form>
             {error && (
@@ -491,8 +503,115 @@ function App() {
           </div>
         )}
 
-        {/* Step 2: Generated Playlist */}
-        {step === 2 && generatedPlaylist && (
+        {/* Step 2: Select Songs */}
+        {step === 2 && (
+          <SelectSongs
+            selectedSongs={selectedSongs}
+            setSelectedSongs={setSelectedSongs}
+            onDone={() => setStep(3)}
+          />
+        )}
+
+        {/* Step 3: Select Auto-complete Source */}
+        {step === 3 && (
+          <SelectAutoCompleteSource
+            onSelect={(source) => {
+              setAutoCompleteSource(source);
+              setStep(4);
+            }}
+          />
+        )}
+
+        {/* Step 4: Generate Playlist */}
+        {step === 4 && (
+          <div>
+            <h2 className="spotify-title" style={{ fontSize: '1.3rem', marginBottom: '24px', color: '#1db954' }}>
+              Confirm and Generate Playlist
+            </h2>
+            <div style={{ marginBottom: '16px' }}>
+              <strong>Activity:</strong> {activity}<br />
+              <strong>Duration:</strong> {duration} min<br />
+              <strong>Selected Songs:</strong> {selectedSongs.length}<br />
+              <strong>Auto-complete Source:</strong> {autoCompleteSource ? autoCompleteSource.name : 'None'}
+            </div>
+            <button
+              className="spotify-btn"
+              onClick={async () => {
+                if (!autoCompleteSource) return;
+                setLoading(true);
+                setError(null);
+                setGeneratedPlaylist(null);
+                try {
+                  const params = {
+                    activity,
+                    duration: duration * 60, // convert to seconds
+                    selectedSongUris: selectedSongs.map((t) => t.uri),
+                    autoCompleteSourceId: autoCompleteSource.id,
+                    autoCompleteSourceType: autoCompleteSource.type,
+                    playlistName: playlistName.trim() || `Workout: ${activity}`,
+                  };
+                  let token = accessToken;
+                  const refreshTokenValue = localStorage.getItem('spotify_refresh_token');
+                  let res = await fetch(`${API_BASE_URL}/generate-playlist`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${token}`,
+                      'x-refresh-token': refreshTokenValue || '',
+                    },
+                    body: JSON.stringify(params),
+                  });
+                  const newToken = res.headers.get('x-new-access-token');
+                  if (newToken) {
+                    localStorage.setItem('spotify_access_token', newToken);
+                    setAccessToken(newToken);
+                  }
+                  if (res.status === 401 && refreshTokenValue) {
+                    token = await refreshToken(setAccessToken);
+                    if (token) {
+                      res = await fetch(`${API_BASE_URL}/generate-playlist`, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${token}`,
+                          'x-refresh-token': refreshTokenValue || '',
+                        },
+                        body: JSON.stringify(params),
+                      });
+                    }
+                  }
+                  if (!res.ok) {
+                    const errorData = await res.json().catch(() => ({}));
+                    throw new Error(errorData.error || 'Failed to generate playlist');
+                  }
+                  const data = await res.json();
+                  setGeneratedPlaylist(data);
+                  setStep(5);
+                } catch (err: unknown) {
+                  if (err instanceof Error) {
+                    setError(err.message);
+                  } else {
+                    setError('Unknown error occurred');
+                  }
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              disabled={loading || !autoCompleteSource}
+              style={{ opacity: loading ? 0.7 : 1 }}
+            >
+              {loading ? 'Creating Playlist...' : 'Generate Playlist'}
+            </button>
+            {error && (
+              <p style={{ color: '#e74c3c', textAlign: 'center', marginTop: '16px' }}>
+                {error}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Step 5: Generated Playlist */}
+        {step === 5 && generatedPlaylist && (
           <div>
             <h2 className="spotify-title" style={{ color: '#1db954', marginBottom: '24px' }}>
               🎉 Playlist Created Successfully!

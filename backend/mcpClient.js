@@ -407,6 +407,125 @@ async function generateWorkoutPlaylist(params, accessToken) {
   };
 }
 
+// Get user's playlists with images
+async function getUserPlaylistsWithImages(accessToken) {
+  let playlists = [];
+  let offset = 0, page;
+  do {
+    page = await getUserPlaylists(accessToken, 50, offset);
+    playlists = playlists.concat(page.items.map(p => ({
+      id: p.id,
+      name: p.name,
+      image: p.images && p.images[0] ? p.images[0].url : ''
+    })));
+    offset += 50;
+  } while (page.next);
+  return playlists;
+}
+
+// Get tracks for a playlist
+async function getTracksForPlaylist(playlistId, accessToken) {
+  const tracks = await getTracksFromPlaylist(playlistId, accessToken);
+  return tracks.filter(Boolean).map(track => ({
+    id: track.id,
+    name: track.name,
+    artists: track.artists?.map(a => a.name) || [],
+    album: track.album?.name || '',
+    uri: track.uri,
+    duration_ms: track.duration_ms,
+    image: track.album?.images?.[0]?.url || ''
+  }));
+}
+
+// Search Spotify globally for tracks
+async function searchUserSongs(query, limit = 20, offset = 0, accessToken) {
+  const res = await searchTracks(query, 'track', limit, offset, accessToken);
+  const items = res.tracks?.items || [];
+  return items.map(track => ({
+    id: track.id,
+    name: track.name,
+    artists: track.artists?.map(a => a.name) || [],
+    album: track.album?.name || '',
+    uri: track.uri,
+    duration_ms: track.duration_ms,
+    image: track.album?.images?.[0]?.url || ''
+  }));
+}
+
+// Generate a playlist with selected songs and auto-complete from a source
+async function generateCustomPlaylist(params, accessToken) {
+  const { activity, duration, selectedSongUris, autoCompleteSourceId, autoCompleteSourceType, playlistName } = params;
+  const name = playlistName && playlistName.trim() ? playlistName.trim() : `Workout: ${activity}`;
+  const playlistDescription = `Generated workout playlist for ${activity} with your selected songs and auto-completed from your ${autoCompleteSourceType}.`;
+  const user = await getCurrentUser(accessToken);
+
+  // Get track objects for selectedSongUris
+  let selectedTracks = [];
+  for (const uri of selectedSongUris) {
+    const id = uri.split(':').pop();
+    // Try to get track details from Spotify
+    try {
+      const res = await axios.get(`https://api.spotify.com/v1/tracks/${id}`, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      selectedTracks.push(res.data);
+    } catch (e) {}
+  }
+
+  // Calculate total duration of selected tracks
+  let totalMs = selectedTracks.reduce((sum, t) => sum + (t.duration_ms || 0), 0);
+  const targetMs = duration * 1000;
+
+  // Get tracks from the auto-complete source
+  let sourceTracks = [];
+  if (autoCompleteSourceType === 'playlist') {
+    sourceTracks = await getTracksFromPlaylist(autoCompleteSourceId, accessToken);
+  } else if (autoCompleteSourceType === 'album') {
+    sourceTracks = await getTracksFromAlbum(autoCompleteSourceId, accessToken);
+  }
+
+  // Remove any tracks already selected
+  const selectedIds = new Set(selectedTracks.map(t => t.id));
+  const remainingTracks = sourceTracks.filter(t => t && t.id && !selectedIds.has(t.id));
+
+  // Add tracks from source until we reach the target duration (±2 min margin)
+  let autoTracks = [];
+  let i = 0;
+  while (totalMs < targetMs - 120000 && i < remainingTracks.length) {
+    autoTracks.push(remainingTracks[i]);
+    totalMs += remainingTracks[i].duration_ms || 0;
+    i++;
+  }
+
+  // Final playlist tracks
+  const finalTracks = [...selectedTracks, ...autoTracks];
+
+  // Create the playlist
+  const playlist = await createPlaylist(user.id, name, playlistDescription, false, accessToken);
+  // Add tracks to playlist (in batches of 100)
+  for (let i = 0; i < finalTracks.length; i += 100) {
+    const batch = finalTracks.slice(i, i + 100).map(t => `spotify:track:${t.id}`);
+    if (batch.length > 0) await addTracksToPlaylist(playlist.id, batch, accessToken);
+  }
+
+  return {
+    playlistId: playlist.id,
+    playlistName: playlist.name,
+    playlistUrl: playlist.external_urls?.spotify,
+    tracks: finalTracks.map(t => ({
+      uri: `spotify:track:${t.id}`,
+      name: t.name,
+      artist: t.artists?.map(a => a.name).join(', '),
+      album: t.album?.name || '',
+      duration_ms: t.duration_ms
+    })),
+    user: {
+      id: user.id,
+      displayName: user.display_name
+    }
+  };
+}
+
 module.exports = {
   getSpotifyAuthUrl,
   exchangeCodeForToken,
@@ -423,4 +542,8 @@ module.exports = {
   searchTracks,
   getTrackRecommendations,
   generateWorkoutPlaylist,
+  searchUserSongs,
+  generateCustomPlaylist,
+  getUserPlaylistsWithImages,
+  getTracksForPlaylist,
 };
