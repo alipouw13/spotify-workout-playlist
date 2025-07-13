@@ -17,14 +17,26 @@ const SelectAutoCompleteSource: React.FC<{
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Helper to get access token
+  const getAccessToken = () => localStorage.getItem('spotify_access_token');
+
   useEffect(() => {
     const fetchSources = async () => {
       setLoading(true);
       setError(null);
       try {
+        const accessToken = getAccessToken();
         const [plRes, alRes] = await Promise.all([
-          fetch('/api/user/playlists'),
-          fetch('/api/user/albums'),
+          fetch('/api/user/playlists', {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }),
+          fetch('/api/user/albums', {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }),
         ]);
         if (!plRes.ok || !alRes.ok) throw new Error('Failed to fetch sources');
         const plData = await plRes.json();
