@@ -190,3 +190,109 @@ input[type="number"].spotify-input {
     width: 90px;
   }
 }
+
+.playlist-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 24px;
+  margin: 24px 0;
+  justify-items: center;
+}
+
+.playlist-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  background: none;
+  border: none;
+  box-shadow: none;
+  transition: transform 0.1s;
+}
+
+.playlist-item:hover {
+  transform: scale(1.04);
+}
+
+.playlist-image {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  margin-bottom: 8px;
+}
+
+.playlist-name {
+  font-size: 1rem;
+  color: #fff;
+  text-align: center;
+  max-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.track-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.track-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #222;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.track-item:last-child {
+  border-bottom: none;
+}
+
+.track-item:hover {
+  background: #181818;
+}
+
+.track-image {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-right: 16px;
+}
+
+.track-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.track-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.track-artists {
+  font-size: 0.95rem;
+  color: #b3b3b3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.track-album {
+  display: none;
+}
+
+.track-checkbox {
+  margin-right: 12px;
+  accent-color: #1db954;
+}

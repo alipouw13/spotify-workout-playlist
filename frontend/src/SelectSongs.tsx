@@ -166,17 +166,18 @@ const SelectSongs: React.FC<{
           </button>
           <div className="track-list">
             {playlistTracks.map((track) => (
-              <div key={track.id} className="track-item">
+              <div key={track.id} className="track-item" onClick={() => toggleTrack(track)}>
                 <input
                   type="checkbox"
+                  className="track-checkbox"
                   checked={!!selectedSongs.find((t) => t.id === track.id)}
                   onChange={() => toggleTrack(track)}
+                  onClick={e => e.stopPropagation()}
                 />
                 <img src={track.image} alt={track.name} className="track-image" />
                 <div className="track-info">
                   <div className="track-name">{track.name}</div>
                   <div className="track-artists">{track.artists.join(', ')}</div>
-                  <div className="track-album">{track.album}</div>
                 </div>
               </div>
             ))}
