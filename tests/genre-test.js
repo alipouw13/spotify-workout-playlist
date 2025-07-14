@@ -1,7 +1,7 @@
 // test-app-token.js
 const axios = require('axios');
-const clientId = '31b203dd44d14a17830e87d8017a072e';
-const clientSecret = '59857d53d34249e1b7586b8aa71be169';
+const clientId = 'client-id-value';
+const clientSecret = 'client-sec-value';
 
 async function getAppAccessToken() {
   const response = await axios.post('https://accounts.spotify.com/api/token',
